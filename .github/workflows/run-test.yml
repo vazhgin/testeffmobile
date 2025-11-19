@@ -119,7 +119,13 @@ jobs:
           name: allure-results
 
       - name: Generate Allure report
-        run: allure generate -c allure-results -o _site
+        run: |
+          # Создать папку если не существует
+          mkdir -p _site
+          # Сгенерировать отчет
+          allure generate -c allure-results -o _site --clean
+          # Проверить что отчет создался
+          ls -la _site/
 
       - name: Store generated report
         uses: actions/upload-artifact@v4
