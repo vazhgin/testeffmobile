@@ -149,14 +149,55 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: _site
+          path: .  # ← Важно: скачивать в текущую директорию
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+      - name: Verify and list files
+        run: |
+          echo "=== Current directory structure ==="
+          pwd
+          ls -la
+          echo "=== Looking for _site ==="
+          find . -name "_site" -type d 2>/dev/null || echo "_site not found"
+          echo "=== All files and folders ==="
+          find . -type f -name "*.html" -o -name "*.json" | head -20
+
+      - name: Check if _site exists
+        id: check_site
+        run: |
+          if [ -d "_site" ]; then
+            echo "_site directory exists"
+            echo "size=$(du -sh _site | cut -f1)" >> $GITHUB_OUTPUT
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "_site directory NOT found"
+            echo "Listing current directory:"
+            ls -la
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create minimal site if missing
+        if: steps.check_site.outputs.exists == 'false'
+        run: |
+          echo "Creating minimal GitHub Pages site"
+          mkdir -p _site
+          cat > _site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Allure Report</title>
+          </head>
+          <body>
+              <h1>Allure Test Report</h1>
+              <p>Report is being generated or no test results found.</p>
+          </body>
+          </html>
+          EOF
+          echo "Created minimal index.html"
 
       - name: Upload to Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '_site'
+          path: _site  # ← Убедитесь что путь правильный
 
       - name: Deploy to GitHub Pages
         id: deployment
