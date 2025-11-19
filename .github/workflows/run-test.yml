@@ -33,10 +33,10 @@ jobs:
         run: pip install -r requirements.txt
       - name: first_test
         if: "github.event.inputs.deployment_target == 'first_test'"
-        run: pytest tests/test_effective-mobile.py::test_moreinfo --alluredir=allure-results
+        run: pytest tests/test_effective-mobile.py::test_vacancy --alluredir=allure-results
       - name: second_test
         if: "github.event.inputs.deployment_target == 'second_test'"
-        run: pytest tests/test_effective-mobile.py::test_leavereq --alluredir=allure-results
+        run: pytest tests/test_effective-mobile.py::test_review --alluredir=allure-results
       - name: Store allure results
         uses: actions/upload-artifact@v4
         with:
