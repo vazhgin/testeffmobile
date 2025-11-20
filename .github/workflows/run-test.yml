@@ -1,13 +1,12 @@
-name: Automated test
+name: Tests with Allure History
 
 on:
   workflow_dispatch:
     inputs:
       deployment_target:
         description: Choose target
-        required: true
-        default: second_test
         type: choice
+        default: first_test
         options:
           - first_test
           - second_test
@@ -18,10 +17,11 @@ permissions:
   id-token: write
 
 jobs:
-  test:
+  run-tests:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -37,6 +37,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Download previous history
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-history
+          path: allure-results/history
+        continue-on-error: true
+
       - name: Run first test
         if: ${{ github.event.inputs.deployment_target == 'first_test' }}
         run: pytest tests/test_effective-mobile.py::test_vacancy --alluredir=allure-results
@@ -45,16 +52,17 @@ jobs:
         if: ${{ github.event.inputs.deployment_target == 'second_test' }}
         run: pytest tests/test_effective-mobile.py::test_review --alluredir=allure-results
 
-      - name: Upload allure results
+      - name: Save allure results
         uses: actions/upload-artifact@v4
         with:
           name: allure-results
           path: allure-results
-          retention-days: 1
+          retention-days: 5
 
   generate-report:
     runs-on: ubuntu-latest
-    needs: test
+    needs: run-tests
+
     steps:
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -64,23 +72,30 @@ jobs:
 
       - name: Install Allure
         run: |
-          sudo wget -q https://github.com/allure-framework/allure2/releases/download/2.24.1/allure-2.24.1.tgz
-          sudo tar -zxvf allure-2.24.1.tgz -C /opt/
-          sudo ln -s /opt/allure-2.24.1/bin/allure /usr/bin/allure
+          wget -q https://github.com/allure-framework/allure2/releases/download/2.24.1/allure-2.24.1.tgz
+          tar -zxvf allure-2.24.1.tgz -C /opt/
+          ln -s /opt/allure-2.24.1/bin/allure /usr/bin/allure
 
-      - name: Download test results
+      - name: Download allure results
         uses: actions/download-artifact@v4
         with:
           name: allure-results
           path: allure-results
 
-      - name: Generate Allure report
+      - name: Generate report with history
         run: |
-          mkdir -p _site
+          rm -rf _site
           allure generate allure-results -o _site --clean
           ls -R _site
 
-      - name: Upload generated report
+      - name: Save history for next runs
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-history
+          path: _site/history
+          retention-days: 5
+
+      - name: Upload Report Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
@@ -88,12 +103,14 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: generate-report
+
     permissions:
       pages: write
       id-token: write
+
     environment:
       name: github-pages
+
     steps:
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v4
