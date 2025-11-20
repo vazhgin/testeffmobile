@@ -1,4 +1,4 @@
-name: Automated tests with Allure
+name: Automated test for effectivemobile
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ on:
         options:
           - first_test
           - second_test
-          - all
+          - all_tests
 
 permissions:
   contents: read
@@ -45,6 +45,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # ===== ИСТОРИЯ =====
+      - name: Download allure history
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: allure-history
+          path: allure-results/history
+
+      # ===== ЗАПУСК ТЕСТОВ =====
       - name: Run first test
         if: ${{ github.event.inputs.deployment_target == 'first_test' }}
         run: pytest tests/test_effectivemobile.py::test_vacancy --alluredir=allure-results -v
@@ -57,12 +66,21 @@ jobs:
         if: ${{ github.event.inputs.deployment_target == 'all_tests' }}
         run: pytest tests/test_effectivemobile.py --alluredir=allure-results -v
 
+      # ===== СОХРАНЕНИЕ РЕЗУЛЬТАТОВ И ИСТОРИИ =====
       - name: Upload allure results
         uses: actions/upload-artifact@v4
         with:
           name: allure-results
           path: allure-results
           retention-days: 5
+
+      - name: Upload allure history
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-history
+          path: allure-results/history || allure-results
+          retention-days: 5
+
 
   generate-report:
     runs-on: ubuntu-latest
@@ -79,23 +97,21 @@ jobs:
         run: |
           wget -q https://github.com/allure-framework/allure2/releases/download/2.24.1/allure-2.24.1.tgz
           tar -zxvf allure-2.24.1.tgz
-          # Проверяем что работает
           ./allure-2.24.1/bin/allure --version
 
-      - name: Download allure results
+      - name: Download test results
         uses: actions/download-artifact@v4
         with:
           name: allure-results
           path: allure-results
 
-      - name: Generate Allure report
+      - name: Generate report
         run: |
           rm -rf _site
           ./allure-2.24.1/bin/allure generate allure-results -o _site --clean
-          echo "Report generated:"
-          ls -la _site/
+          ls -la _site
 
-      - name: Upload report artifact
+      - name: Upload report
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
@@ -110,6 +126,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to Github Pages
+      - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
