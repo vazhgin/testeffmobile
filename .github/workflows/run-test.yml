@@ -1,4 +1,4 @@
-name: Automated tests with Allure History
+name: Automated tests with Allure
 
 on:
   workflow_dispatch:
@@ -44,39 +44,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Prepare allure-results directory
-        run: mkdir -p allure-results/history
-
-      - name: Download previous history
-        uses: actions/download-artifact@v4
-        with:
-          name: allure-history
-          path: allure-results/history
-        continue-on-error: true
-
-      - name: Verify test files
-        run: |
-          echo "Test files:"
-          find tests/ -name "*.py" -type f
-          echo "Requirements:"
-          cat requirements.txt
-
       - name: Run first test
         if: ${{ github.event.inputs.deployment_target == 'first_test' }}
-        run: |
-          python -c "
-          from selenium import webdriver
-          from selenium.webdriver.chrome.options import Options
-          options = Options()
-          options.add_argument('--headless=new')
-          options.add_argument('--no-sandbox')
-          options.add_argument('--disable-dev-shm-usage')
-          driver = webdriver.Chrome(options=options)
-          driver.get('https://effective-mobile.ru/')
-          print('Page title:', driver.title)
-          driver.quit()
-          "
-          pytest tests/test_effectivemobile.py::test_vacancy --alluredir=allure-results -v
+        run: pytest tests/test_effectivemobile.py::test_vacancy --alluredir=allure-results -v
 
       - name: Run second test
         if: ${{ github.event.inputs.deployment_target == 'second_test' }}
@@ -100,10 +70,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Allure (simple)
+      - name: Install Allure (working method)
         run: |
           wget -q https://github.com/allure-framework/allure2/releases/download/2.24.1/allure-2.24.1.tgz
-          tar -xzf allure-2.24.1.tgz
+          tar -zxvf allure-2.24.1.tgz
+          mkdir -p $HOME/.local/bin
+          cp allure-2.24.1/bin/allure $HOME/.local/bin/
+          chmod +x $HOME/.local/bin/allure
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Download allure results
         uses: actions/download-artifact@v4
@@ -111,21 +85,12 @@ jobs:
           name: allure-results
           path: allure-results
 
-      - name: Ensure history directory exists
-        run: mkdir -p allure-results/history
-
-      - name: Generate Allure report with history
+      - name: Generate Allure report
         run: |
           rm -rf _site
-          ./allure-2.24.1/bin/allure generate allure-results -o _site --clean
-          ls -R _site
-
-      - name: Upload generated history for next runs
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-history
-          path: _site/history
-          retention-days: 5
+          allure generate allure-results -o _site --clean
+          echo "Report generated:"
+          ls -la _site/
 
       - name: Upload report artifact
         uses: actions/upload-pages-artifact@v3
