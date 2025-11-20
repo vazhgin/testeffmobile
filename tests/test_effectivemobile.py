@@ -1,21 +1,13 @@
-import time
-
 from pages.checkpage import Checkpage
 from pages.mainpage import Mainpage
 
 
 def test_moreinfo(browser):
-    time.sleep(2)
     mainpage = Mainpage(browser)
-    time.sleep(2)
     mainpage.open()
-    time.sleep(2)
     mainpage.click_moreinfo()
-    time.sleep(2)
     checkpage = Checkpage(browser)
-    time.sleep(2)
     checkpage.checktitle_moreinfo('Форматы сотрудничества')
-    time.sleep(2)
 
 def test_leavereq(browser):
     mainpage = Mainpage(browser)
