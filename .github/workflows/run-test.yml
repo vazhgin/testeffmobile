@@ -1,10 +1,11 @@
-name: Automated effective-mobile test
+name: Automated tests with Allure History
 
 on:
   workflow_dispatch:
     inputs:
       deployment_target:
-        description: Choose target
+        description: Choose target test
+        required: true
         type: choice
         default: first_test
         options:
@@ -22,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -38,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Prepare directory
+      - name: Prepare allure-results directory
         run: mkdir -p allure-results/history
 
       - name: Download previous history
@@ -46,8 +47,9 @@ jobs:
         with:
           name: allure-history
           path: allure-results/history
-        continue-on-error: true  # ← теперь ОК!
+        continue-on-error: true   # ⬅ НЕ ДАЁТ УПАСТЬ ПРИ ПЕРВОМ ЗАПУСКЕ
 
+      # ⬇ ТВОИ ДВА ВЕТВЛЕНИЯ
       - name: Run first test
         if: ${{ github.event.inputs.deployment_target == 'first_test' }}
         run: pytest tests/test_effective-mobile.py::test_vacancy --alluredir=allure-results
@@ -56,7 +58,7 @@ jobs:
         if: ${{ github.event.inputs.deployment_target == 'second_test' }}
         run: pytest tests/test_effective-mobile.py::test_review --alluredir=allure-results
 
-      - name: Upload results
+      - name: Upload allure results
         uses: actions/upload-artifact@v4
         with:
           name: allure-results
@@ -69,6 +71,7 @@ jobs:
     needs: run-tests
 
     steps:
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -87,16 +90,16 @@ jobs:
           name: allure-results
           path: allure-results
 
-      - name: Validate history folder
-        run: mkdir -p allure-results/history  # ← защита от падения
+      - name: Ensure history directory exists
+        run: mkdir -p allure-results/history
 
-      - name: Generate report
+      - name: Generate Allure report with history
         run: |
           rm -rf _site
           allure generate allure-results -o _site --clean
           ls -R _site
 
-      - name: Upload history for next run
+      - name: Upload generated history for next runs
         uses: actions/upload-artifact@v4
         with:
           name: allure-history
@@ -121,5 +124,5 @@ jobs:
       name: github-pages
 
     steps:
-      - name: Deploy
+      - name: Deploy to Github Pages
         uses: actions/deploy-pages@v4
