@@ -70,14 +70,12 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Allure (working method)
+      - name: Install Allure
         run: |
           wget -q https://github.com/allure-framework/allure2/releases/download/2.24.1/allure-2.24.1.tgz
           tar -zxvf allure-2.24.1.tgz
-          mkdir -p $HOME/.local/bin
-          cp allure-2.24.1/bin/allure $HOME/.local/bin/
-          chmod +x $HOME/.local/bin/allure
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          # Проверяем что работает
+          ./allure-2.24.1/bin/allure --version
 
       - name: Download allure results
         uses: actions/download-artifact@v4
@@ -88,7 +86,7 @@ jobs:
       - name: Generate Allure report
         run: |
           rm -rf _site
-          allure generate allure-results -o _site --clean
+          ./allure-2.24.1/bin/allure generate allure-results -o _site --clean
           echo "Report generated:"
           ls -la _site/
 
