@@ -100,11 +100,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Allure
+      - name: Install Allure (simple)
         run: |
           wget -q https://github.com/allure-framework/allure2/releases/download/2.24.1/allure-2.24.1.tgz
-          tar -zxvf allure-2.24.1.tgz
-          echo "$(pwd)/allure-2.24.1/bin" >> $GITHUB_PATH
+          tar -xzf allure-2.24.1.tgz
 
       - name: Download allure results
         uses: actions/download-artifact@v4
@@ -118,7 +117,7 @@ jobs:
       - name: Generate Allure report with history
         run: |
           rm -rf _site
-          allure generate allure-results -o _site --clean
+          ./allure-2.24.1/bin/allure generate allure-results -o _site --clean
           ls -R _site
 
       - name: Upload generated history for next runs
